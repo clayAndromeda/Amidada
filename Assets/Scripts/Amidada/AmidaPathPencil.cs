@@ -30,13 +30,21 @@ namespace Amidada
 		/// <summary> スクリーン座標系でのマウス位置（nullなら無効） </summary>
 		public ReadOnlyReactiveProperty<Vector3?> MousePosition => mousePosition;
 
+		private bool canDraw = true;
+
+		public void StopDraw()
+		{
+			canDraw = false;
+		}
+
 		private void Awake()
 		{
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetMouseButtonDown(0)) // マウスの左クリックを押下した
 				.Subscribe(_ =>
 				{
-					var mousePositionScreenSpace = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+					canDraw = true;
+					var mousePositionScreenSpace = Input.mousePosition;
 					mousePosition.Value = mousePositionScreenSpace;
 					CreateLine();
 				}).AddTo(this);
@@ -45,6 +53,11 @@ namespace Amidada
 				.Where(_ => Input.GetMouseButton(0)) // マウスの左クリック押下中
 				.Subscribe(_ =>
 				{
+					if (!canDraw)
+					{
+						mousePosition.Value = null;
+						return;
+					}
 					var mousePositionScreenSpace = Input.mousePosition;
 					mousePosition.Value = mousePositionScreenSpace;
 					

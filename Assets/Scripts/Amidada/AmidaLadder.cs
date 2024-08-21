@@ -1,4 +1,4 @@
-using ObservableCollections;
+using System.Collections.Generic;
 
 namespace Amidada
 {
@@ -7,10 +7,8 @@ namespace Amidada
 	/// </summary>
 	public class AmidaLadder
 	{
-		private readonly ObservableList<AmidaLineSegment> verticalLines = new();
-		
-		/// <summary> あみだくじの縦線 </summary>
-		public IObservableCollection<AmidaLineSegment> VerticalLines => verticalLines;
+		/// <summary> 縦向きの線分 </summary>
+		public readonly List<AmidaLineSegment> VerticalLines = new();
 
 		public AmidaLadder()
 		{
@@ -20,7 +18,7 @@ namespace Amidada
 				new (new (395, 590), new (395, 50)), // 左から3番目の線
 				new (new (555, 590), new (555, 50)), // 左から4番目の線
 			};
-			verticalLines.AddRange(initialLadders);
+			VerticalLines.AddRange(initialLadders);
 		}
 	}
 }
