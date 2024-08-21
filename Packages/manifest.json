@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.cysharp.r3": "1.2.7",
     "com.cysharp.unitask": "2.5.5",
     "com.unity.collab-proxy": "2.4.4",
     "com.unity.feature.2d": "2.0.1",
