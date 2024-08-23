@@ -46,7 +46,7 @@ namespace Amidada
 						var extendedLine = line.ExtendStartPosition(extendedLineLength);
 						if (extendedLine.IsIntersect(ladder.VerticalLines[i]) && extendedLine.IsIntersect(ladder.VerticalLines[i + 1]))
 						{
-							var clippedLine = extendedLine.ClipX(ladder.VerticalLines[i].Start.x, ladder.VerticalLines[i + 1].Start.x);
+							var clippedLine = extendedLine.ClipVerticalLines(ladder.VerticalLines[i], ladder.VerticalLines[i + 1]);
 							CreateLineSegmentObject(clippedLine);
 							pathPencil.StopDraw();
 							return;
