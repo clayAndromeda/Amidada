@@ -35,6 +35,15 @@ namespace Amidada
 		public void StopDraw()
 		{
 			canDraw = false;
+
+			// マウス位置を無効にする
+			mousePosition.Value = null;
+			// 今引いている線を消す
+			if (currentLine != null)
+			{
+				Destroy(currentLine.gameObject);
+				currentLine = null;
+			}
 		}
 
 		private void Awake()
@@ -58,25 +67,23 @@ namespace Amidada
 						mousePosition.Value = null;
 						return;
 					}
-					var mousePositionScreenSpace = Input.mousePosition;
-					mousePosition.Value = mousePositionScreenSpace;
 					
+					var mousePositionScreenSpace = Input.mousePosition;
 					Vector3 mousePositionWorldSpace = mainCamera.ScreenToWorldPoint(mousePositionScreenSpace);
 					mousePositionWorldSpace.z = 0;
 					if (!pathPoints.Contains(mousePositionWorldSpace))
 					{
 						AddPointToPath(mousePositionWorldSpace);
 					}
+					
+					mousePosition.Value = mousePositionScreenSpace;
 				}).AddTo(this);
 
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetMouseButtonUp(0)) // マウスの左クリックを離した
 				.Subscribe(_ =>
 				{
-					// マウス位置を無効にする
-					mousePosition.Value = null;
-					// 今引いている線を消す
-					Destroy(currentLine.gameObject);
+					StopDraw();
 				}).AddTo(this);
 		}
 
