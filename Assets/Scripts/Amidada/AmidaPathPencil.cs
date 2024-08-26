@@ -24,7 +24,6 @@ namespace Amidada
 
 		private LineRenderer currentLine;
 		private readonly List<Vector3> pathPoints = new();
-
 		private readonly ReactiveProperty<Vector3?> mousePosition = new(null);
 
 		/// <summary> スクリーン座標系でのマウス位置（nullなら無効） </summary>
