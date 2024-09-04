@@ -15,6 +15,8 @@ namespace Amidada
 		[SerializeField] private Camera mainCamera;
 		[SerializeField] private float extendedLineLength = 10;
 		
+		[SerializeField, Range(1, 4)] private int gameSpeed = 1;
+		
 		private AmidaLadder ladder;
 
 		private Vector2? currentLineStartPosition = null;
@@ -39,12 +41,22 @@ namespace Amidada
 						CurrentLine = ladder.TateLines[0],
 						TargetPoint = startLine.End,
 					};
-					
-					// 縦線の終点より下に行くまで続ける
-					while (playerPoint.Position.y > ladder.TateLines[0].End.y)
+
+					bool moving = false;
+					while (!moving)
 					{
-						ladder.Moved(playerPoint);
-						playerTransform.anchoredPosition = playerPoint.Position;
+						for (int i = 0; i < gameSpeed; i++)
+						{
+							ladder.Moved(playerPoint);
+							playerTransform.anchoredPosition = playerPoint.Position;
+							
+							// 縦線の終点より下に行くまで続ける
+							if (playerPoint.Position.y <= ladder.TateLines[0].End.y)
+							{
+								moving = true;
+								break;
+							}
+						}
 						await UniTask.Yield(PlayerLoopTiming.Update, ct);
 					}
 					
