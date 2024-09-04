@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
 
@@ -7,7 +8,9 @@ namespace Amidada
 	{
 		[SerializeField] private AmidaPathPencil pathPencil;
 		[SerializeField] private LineRenderer lineTemplate;
-		[SerializeField] private GameObject amidaUser;
+		
+		[SerializeField] private RectTransform amidaPlayerPrefab;
+		[SerializeField] private Canvas canvas;
 		
 		[SerializeField] private Camera mainCamera;
 		[SerializeField] private float extendedLineLength = 10;
@@ -20,6 +23,33 @@ namespace Amidada
 		{
 			// あみだくじの道筋をつくる処理を初期化
 			InitializeLadder();
+			
+			Observable.EveryUpdate()
+				.Where(_ => Input.GetKeyDown(KeyCode.Space))
+				.SubscribeAwait(async (_, ct) =>
+				{
+					// あみだくじを下る点を生成
+					var startLine = ladder.TateLines[0];
+					var playerTransform = Instantiate(amidaPlayerPrefab, canvas.transform);
+					playerTransform.anchoredPosition = startLine.Start;
+					AmidaPlayerPoint playerPoint = new AmidaPlayerPoint
+					{
+						Position = playerTransform.anchoredPosition,
+						Direction = startLine.StoE,
+						CurrentLine = ladder.TateLines[0],
+						TargetPoint = startLine.End,
+					};
+					
+					// 縦線の終点より下に行くまで続ける
+					while (playerPoint.Position.y > ladder.TateLines[0].End.y)
+					{
+						ladder.Moved(playerPoint);
+						playerTransform.anchoredPosition = playerPoint.Position;
+						await UniTask.Yield(PlayerLoopTiming.Update, ct);
+					}
+					
+					Debug.Log("Finished!");
+				}).AddTo(this);
 			
 			// pathPencil.MousePositionがnullから変化したイベントを購読する
 			pathPencil.MousePosition
@@ -39,14 +69,20 @@ namespace Amidada
 						return;
 					}
 					
-					for (int i = 0; i < ladder.WarpLines.Count - 1; i++)
+					for (int i = 0; i < ladder.TateLines.Count - 1; i++)
 					{
 						// 始点方向に3px延長した線分が、2本の縦線と交差しているか判定
 						var line = new AmidaLineSegment(currentLineStartPosition.Value, x.Value);
 						var extendedLine = line.ExtendStartPosition(extendedLineLength);
-						if (extendedLine.IsIntersect(ladder.WarpLines[i]) && extendedLine.IsIntersect(ladder.WarpLines[i + 1]))
+						if (extendedLine.IsIntersect(ladder.TateLines[i]) && extendedLine.IsIntersect(ladder.TateLines[i + 1]))
 						{
-							var clippedLine = extendedLine.ClipVerticalLines(ladder.WarpLines[i], ladder.WarpLines[i + 1]);
+							// 始点と終点を2本の縦線で切り取る
+							var clippedLine = extendedLine.ClipVerticalLines(ladder.TateLines[i], ladder.TateLines[i + 1]);
+							// 横糸は、X座標が小さい方から大きい方へ向かうようにする
+							if (clippedLine.Start.x > clippedLine.End.x)
+							{
+								clippedLine = new AmidaLineSegment(clippedLine.End, clippedLine.Start);
+							}
 							
 							if (!ladder.TryAddWoofLine(clippedLine))
 							{
@@ -66,7 +102,7 @@ namespace Amidada
 		private void InitializeLadder()
 		{
 			ladder = new AmidaLadder();
-			foreach (var line in ladder.WarpLines)
+			foreach (var line in ladder.TateLines)
 			{
 				CreateLineSegmentObject(line);
 			}

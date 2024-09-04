@@ -15,6 +15,9 @@ namespace Amidada
 			Start = start;
 			End = end;
 		}
+		
+		public Vector2 StoE => (End - Start).normalized;
+		public Vector2 EtoS => (Start - End).normalized;
 
 		public AmidaLineSegment ExtendStartPosition(float length)
 		{

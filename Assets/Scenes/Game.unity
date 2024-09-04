@@ -398,7 +398,7 @@ GameObject:
   - component: {fileID: 969444186}
   - component: {fileID: 969444185}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: OverlayCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -453,7 +453,7 @@ Canvas:
   m_GameObject: {fileID: 969444184}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 1
+  m_RenderMode: 0
   m_Camera: {fileID: 519420031}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
@@ -532,9 +532,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pathPencil: {fileID: 444650284}
   lineTemplate: {fileID: 3802683075266741277, guid: 405f8c0da09dfbc42a96ec9305d6292d, type: 3}
-  amidaUser: {fileID: 8416051913014397012, guid: 64af94dc0ddaa6343b8e1f58dbf1e4e5, type: 3}
+  amidaPlayerPrefab: {fileID: 1890501489384866749, guid: 64af94dc0ddaa6343b8e1f58dbf1e4e5, type: 3}
+  canvas: {fileID: 969444187}
   mainCamera: {fileID: 519420031}
-  extendedLineLength: 50
+  extendedLineLength: 20
 --- !u!1 &2083896052
 GameObject:
   m_ObjectHideFlags: 0
