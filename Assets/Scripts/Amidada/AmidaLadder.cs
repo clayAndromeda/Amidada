@@ -55,7 +55,8 @@ namespace Amidada
 			if (TateLines.Contains(playerPoint.CurrentLine))
 			{
 				// 今縦線上にいる
-				// 横線の中で、X座標が同じでY座標が進行方向に最も近いものを探す
+				
+				// 横線の中で、始点のX座標が同じで、Y座標が進行方向に最も近いものを探す
 				(AmidaLineSegment yoko, float distance) option1 =
 					yokoLines
 						.Where(yoko =>
@@ -81,14 +82,15 @@ namespace Amidada
 						.Select(yoko => (yoko, distance: Mathf.Abs(yoko.End.y - playerPoint.Position.y)))
 						.OrderBy(x => x.distance)
 						.FirstOrDefault();
-
+				
 				if (option1.yoko == null && option2.yoko == null)
 				{
 					// まがる横線がないのでまっすぐ進むだけ
 					playerPoint.Position += playerPoint.Direction * speed;
 					return;
 				}
-				else if (option1.yoko == null)
+				
+				if (option1.yoko == null)
 				{
 					if (option2.distance <= speed)
 					{
@@ -148,7 +150,7 @@ namespace Amidada
 				var movedLine = new AmidaLineSegment(playerPoint.Position, playerPoint.Position + playerPoint.Direction * speed);
 				if (movedLine.IsIntersect(nextLine))
 				{
-					playerPoint.Position = new (nextLine.Start.x, playerPoint.Position.y);
+					playerPoint.Position = playerPoint.TargetPoint;
 					playerPoint.Direction = nextLine.StoE;
 					playerPoint.TargetPoint = nextLine.End;
 					playerPoint.CurrentLine = nextLine;

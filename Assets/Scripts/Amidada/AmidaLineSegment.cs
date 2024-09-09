@@ -62,7 +62,7 @@ namespace Amidada
 			
 			return new AmidaLineSegment(clippedStart, clippedEnd);
 		}
-
+		
 		public bool IsIntersect(AmidaLineSegment other)
 		{
 			// 線分が交差しているか判定する
@@ -80,7 +80,7 @@ namespace Amidada
 			var tb = (cx - dx) * (by - cy) + (cy - dy) * (cx - bx);
 			var tc = (ax - bx) * (cy - ay) + (ay - by) * (ax - cx);
 			var td = (ax - bx) * (dy - ay) + (ay - by) * (ax - dx);
-
+			
 			// return tc * td < 0 && ta * tb < 0;
 			return tc * td <= 0 && ta * tb <= 0; // 端点を含む場合
 		}
