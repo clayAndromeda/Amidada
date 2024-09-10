@@ -31,12 +31,21 @@ namespace Amidada
 
 		private bool canDraw = true;
 
+		private Vector3? mouseStartPosition = null;
+
+		/// <summary> 線を描き始めた点から今の点までの直線を返す </summary>
+		public AmidaLineSegment StartToEndLine => mouseStartPosition.HasValue && mousePosition.Value != null
+			? new AmidaLineSegment(mouseStartPosition.Value, mousePosition.Value.Value)
+			: null;
+
 		public void StopDraw()
 		{
 			canDraw = false;
 
 			// マウス位置を無効にする
 			mousePosition.Value = null;
+			mouseStartPosition = null;
+			
 			// 今引いている線を消す
 			if (currentLine != null)
 			{
@@ -54,6 +63,7 @@ namespace Amidada
 					canDraw = true;
 					var mousePositionScreenSpace = Input.mousePosition;
 					mousePosition.Value = mousePositionScreenSpace;
+					mouseStartPosition = mousePositionScreenSpace;
 					CreateLine();
 				}).AddTo(this);
 
