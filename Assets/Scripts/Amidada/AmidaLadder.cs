@@ -9,7 +9,7 @@ namespace Amidada
 	/// </summary>
 	public class AmidaLadder
 	{
-		/// <summary> 縦向きの線分 </summary>
+		/// <summary> 縦向きの線分（終点があみだくじのゴール） </summary>
 		public readonly List<AmidaLineSegment> TateLines = new();
 
 		/// <summary> 横糸 </summary>
@@ -25,17 +25,25 @@ namespace Amidada
 			};
 			TateLines.AddRange(initialWarps);
 		}
+
+		/// <summary>
+		/// 横糸を全て削除する
+		/// </summary>
+		public void ClearYokoLines()
+		{
+			yokoLines.Clear();
+		}
 		
 		/// <summary>
 		/// 横糸の追加を試みる
 		/// </summary>
 		/// <returns>追加できた</returns>
-		public bool TryAddWoofLine(AmidaLineSegment line)
+		public bool TryAddYokoLine(AmidaLineSegment line)
 		{
 			// 他の横糸と交差していたら追加できない
-			foreach (var woofLine in yokoLines)
+			foreach (var yokoLine in yokoLines)
 			{
-				if (line.IsIntersect(woofLine))
+				if (line.IsIntersect(yokoLine))
 				{
 					return false;
 				}
@@ -45,10 +53,18 @@ namespace Amidada
 		}
 		
 		/// <summary>
+		/// 何番目の縦線か？
+		/// </summary>
+		public int GetTateLineIndex(AmidaLineSegment line)
+		{
+			return TateLines.FindIndex(tate => Mathf.Approximately(tate.Start.x, line.Start.x));
+		}
+		
+		/// <summary>
 		/// あみだくじの線分上を動かす
 		/// </summary>
 		/// <param name="playerPoint">あみだくじ上を動かす点</param>
-		public void Moved(AmidaPlayerPoint playerPoint)
+		public void MovePlayerPoint(AmidaPlayerPoint playerPoint)
 		{
 			const float speed = 1.0f;
 			
