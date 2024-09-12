@@ -1,4 +1,5 @@
 using System.Linq;
+using UnityEngine;
 
 namespace Amidada
 {
@@ -27,7 +28,8 @@ namespace Amidada
 		/// </summary>
 		public int GameSpeed { get; private set; }
 
-		public GameLaunchSettings(int playerCount, int starCount, float delayedSecond, int gameSpeed)
+
+		private GameLaunchSettings(int playerCount, int starCount, float delayedSecond, int gameSpeed)
 		{
 			PlayerCount = playerCount;
 			StarCount = starCount;
@@ -37,28 +39,51 @@ namespace Amidada
 
 		private static readonly GameLaunchSettings[] LowLevelSettings =
 		{
-			new(1, 2, 2, 1),
-			new(2, 3, 2, 1),
+			new(1, 1, 2, 1),
 			new(2, 2, 2, 1),
-			new(3, 3, 1.5f, 1),
-			new(3, 2, 1.5f, 1),
-			new(3, 2, 1.5f, 2),
+			new(1, 1, 1.5f, 2),
+			new(2, 2, 1, 2),
+			new(3, 2, 1f, 1),
+			new(3, 2, 1f, 1),
+			new(3, 2, 1f, 2),
 		};
+
+		private static readonly AmidaLineSegment[][] InitialYokoLines =
+		{
+			new [] { CreateClipped01(500, 500), CreateClipped12(400, 400), CreateClipped23(500, 500) },
+			new [] { CreateClipped01(400, 400), CreateClipped12(500, 500), CreateClipped23(400, 400) },
+			new [] { CreateClipped01(500, 400), CreateClipped12(450, 450), CreateClipped12(350, 350), CreateClipped23(400, 500) },
+			new [] { CreateClipped01(500, 500), CreateClipped01(400, 400), CreateClipped12(450, 450), CreateClipped12(350, 350), CreateClipped23(500, 500), CreateClipped23(400, 400) },
+		};
+
+		private static AmidaLineSegment CreateClipped01(float leftY, float rightY) => CreateClippedLine(leftY, rightY, 0, 1);
+		private static AmidaLineSegment CreateClipped12(float leftY, float rightY) => CreateClippedLine(leftY, rightY, 1, 2);
+		private static AmidaLineSegment CreateClipped23(float leftY, float rightY) => CreateClippedLine(leftY, rightY, 2, 3);
+			
+		private static AmidaLineSegment CreateClippedLine(float leftY, float rightY, int leftIndex, int rightIndex)
+		{
+			float[] tateXs = {75, 235, 395, 555};
+			return new AmidaLineSegment(new Vector2(tateXs[leftIndex], leftY), new Vector2(tateXs[rightIndex], rightY));
+		}
 		
 		/// <summary>
 		/// ステージ番号から、ゲーム設定を返す
 		/// </summary>
 		/// <param name="stageNumber">0始まり</param>
-		/// <returns></returns>
-		public static GameLaunchSettings GetSettingsByStageNumber(int stageNumber)
+		public static (GameLaunchSettings, AmidaLineSegment[]) GetSettingsByStageNumber(int stageNumber)
 		{
+			// InitialYokoLinesからランダムに1つ選ぶ
+			int yokoLinesIndex = Random.Range(0, InitialYokoLines.Length);
+			var yokoLines = InitialYokoLines[yokoLinesIndex];
+			Debug.Log($"{yokoLinesIndex}の横線を選択");
+			
 			// 範囲外なら末尾を返す
 			if (stageNumber >= LowLevelSettings.Length)
 			{
-				return LowLevelSettings.Last();
+				return (LowLevelSettings.Last(), yokoLines);
 			}
 			
-			return LowLevelSettings[stageNumber];
+			return (LowLevelSettings[stageNumber], yokoLines);
 		}
 	}
 }

@@ -21,7 +21,6 @@ namespace Amidada
 
 		[SerializeField] private Camera mainCamera;
 
-		[SerializeField, Range(1, 4)] private int gameSpeed = 1;
 
 		[Header("オブジェクトのルート"), SerializeField]
 		private Canvas canvas;
@@ -35,7 +34,9 @@ namespace Amidada
 		private readonly List<AmidaTarget> enemies = new();
 
 		private int gamePoint;
+		private int gameSpeed = 1;
 		private bool isAlive = true;
+		private bool isSpeedUp = false;
 
 		private void Awake()
 		{
@@ -45,6 +46,15 @@ namespace Amidada
 			// MEMO: SubscribeAwaitのctは、AddTo or RegisterToで登録してDisposableなオブジェクトの寿命が尽きたタイミングでCancelAndDisposeされる？
 
 			isAlive = false;
+			
+			Observable.EveryUpdate()
+				.Where(_ => Input.GetKeyDown(KeyCode.Space))
+				.Subscribe(_ => isSpeedUp = true).AddTo(this);
+			
+			Observable.EveryUpdate()
+				.Where(_ => Input.GetKeyUp(KeyCode.Space))
+				.Subscribe(_ => isSpeedUp = false).AddTo(this);
+			
 			
 			// Enterキーを押したら次ステージ開始
 			Observable.EveryUpdate()
@@ -61,7 +71,20 @@ namespace Amidada
 					int stageNumber = gamePoint / 5;
 					
 					// 今のステージ番号に対応するゲーム開始設定を取得する
-					var launchSettings = GameLaunchSettings.GetSettingsByStageNumber(stageNumber);
+					var (launchSettings, initialYokoLines) = GameLaunchSettings.GetSettingsByStageNumber(stageNumber);
+					
+					// 初期設定の横線を追加する
+					foreach (var yoko in initialYokoLines)
+					{
+						if (ladder.TryAddYokoLine(yoko))
+						{
+							CreateLineSegmentObject(yoko, yokoLineParent);
+						}
+						else
+						{
+							Debug.Log($"YokoLine {yoko.Start} - {yoko.End}は追加出来ませんでした");
+						}
+					}
 					
 					gameSpeed = launchSettings.GameSpeed;
 					
@@ -111,6 +134,7 @@ namespace Amidada
 		private async UniTask LaunchPlayerObjectAsync(AmidaPlayerObject playerObject, float initialDelayTime, CancellationToken cancellationToken)
 		{
 			// initialDelayTime秒待ってから移動開始
+			// TODO: スタート時間のDelayも加速したい
 			await UniTask.Delay(TimeSpan.FromSeconds(initialDelayTime), cancellationToken: cancellationToken);
 
 			bool moving = true;
@@ -120,7 +144,9 @@ namespace Amidada
 				{
 					break;
 				}
-				for (int i = 0; i < gameSpeed; i++)
+
+				int sampleRate = isSpeedUp ? 3 : gameSpeed;
+				for (int i = 0; i < sampleRate; i++)
 				{
 					ladder.MovePlayerPoint(playerObject.PointData);
 					playerObject.UpdatePointData();
@@ -133,7 +159,7 @@ namespace Amidada
 					}
 				}
 
-				await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+				await UniTask.Yield(PlayerLoopTiming.FixedUpdate, cancellationToken);
 			}
 
 			if (!isAlive)

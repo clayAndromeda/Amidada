@@ -9,13 +9,13 @@ namespace Amidada
 	{
 		public Vector2 Start { get; }
 		public Vector2 End { get; }
-		
+
 		public AmidaLineSegment(Vector2 start, Vector2 end)
 		{
 			Start = start;
 			End = end;
 		}
-		
+
 		public Vector2 StoE => (End - Start).normalized;
 		public Vector2 EtoS => (Start - End).normalized;
 
@@ -46,7 +46,7 @@ namespace Amidada
 				// 始点が縦線1より左にある場合、始点を縦線1のx座標に移動
 				clippedStart.x = vertLine1.Start.x;
 				clippedStart.y = GetY(clippedStart.x);
-				
+
 				clippedEnd.x = vertLine2.Start.x;
 				clippedEnd.y = GetY(clippedEnd.x);
 			}
@@ -55,34 +55,71 @@ namespace Amidada
 				// 始点が縦線1より右にある場合、始点を縦線2のx座標に移動
 				clippedStart.x = vertLine2.Start.x;
 				clippedStart.y = GetY(clippedStart.x);
-				
+
 				clippedEnd.x = vertLine1.Start.x;
 				clippedEnd.y = GetY(clippedEnd.x);
 			}
-			
+
 			return new AmidaLineSegment(clippedStart, clippedEnd);
 		}
-		
+
 		public bool IsIntersect(AmidaLineSegment other)
 		{
-			// 線分が交差しているか判定する
-			// 参考: https://qiita.com/ykob/items/ab7f30c43a0ed52d16f2
-			float ax = Start.x;
-			float ay = Start.y;
-			float bx = End.x;
-			float by = End.y;
-			float cx = other.Start.x;
-			float cy = other.Start.y;
-			float dx = other.End.x;
-			float dy = other.End.y;
+			// 参考:
+			// https://qiita.com/ykob/items/ab7f30c43a0ed52d16f2
+			// https://www5d.biglobe.ne.jp/~tomoya03/shtml/algorithm/IntersectionEX.htm
 			
-			var ta = (cx - dx) * (ay - cy) + (cy - dy) * (cx - ax);
-			var tb = (cx - dx) * (by - cy) + (cy - dy) * (cx - bx);
-			var tc = (ax - bx) * (cy - ay) + (ay - by) * (ax - cx);
-			var td = (ax - bx) * (dy - ay) + (ay - by) * (ax - dx);
-			
-			// return tc * td < 0 && ta * tb < 0;
-			return tc * td <= 0 && ta * tb <= 0; // 端点を含む場合
+			// x座標によるチェック
+			if (Start.x >= End.x)
+			{
+				if ((Start.x < other.Start.x && Start.x < other.End.x) ||
+				    (End.x > other.Start.x && End.x > other.End.x))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				if ((End.x < other.Start.x && End.x < other.End.x) ||
+				    (Start.x > other.Start.x && Start.x > other.End.x))
+				{
+					return false;
+				}
+			}
+
+			// y座標によるチェック
+			if (Start.y >= End.y)
+			{
+				if ((Start.y < other.Start.y && Start.y < other.End.y) ||
+				    (End.y > other.Start.y && End.y > other.End.y))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				if ((End.y < other.Start.y && End.y < other.End.y) ||
+				    (Start.y > other.Start.y && Start.y > other.End.y))
+				{
+					return false;
+				}
+			}
+
+			if (((Start.x - End.x) * (other.Start.y - Start.y) + (Start.y - End.y) * (Start.x - other.Start.x)) *
+			    ((Start.x - End.x) * (other.End.y - Start.y) + (Start.y - End.y) * (Start.x - other.End.x)) > 0)
+			{
+				return false;
+			}
+
+			if (((other.Start.x - other.End.x) * (Start.y - other.Start.y) +
+			     (other.Start.y - other.End.y) * (other.Start.x - Start.x)) *
+			    ((other.Start.x - other.End.x) * (End.y - other.Start.y) +
+			     (other.Start.y - other.End.y) * (other.Start.x - End.x)) > 0)
+			{
+				return false;
+			}
+
+			return true;
 		}
 	}
 }

@@ -45,6 +45,7 @@ namespace Amidada
 			{
 				if (line.IsIntersect(yokoLine))
 				{
+					Debug.Log($"line ({line.Start.x}, {line.Start.y}) - ({line.End.x}, {line.End.y}) は、({yokoLine.Start.x}, {yokoLine.Start.y}) - ({yokoLine.End.x}, {yokoLine.End.y})と交差しています");
 					return false;
 				}
 			}
@@ -66,7 +67,7 @@ namespace Amidada
 		/// <param name="playerPointData">あみだくじ上を動かす点</param>
 		public void MovePlayerPoint(AmidaPlayerPointData playerPointData)
 		{
-			const float speed = 1.0f;
+			const float speed = 2.0f; // FixedUpdate1回あたりの移動量
 			
 			if (TateLines.Contains(playerPointData.CurrentLine))
 			{
