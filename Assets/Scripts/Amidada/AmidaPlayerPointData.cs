@@ -5,7 +5,7 @@ namespace Amidada
 	/// <summary>
 	/// あみだくじ上を動く点
 	/// </summary>
-	public class AmidaPlayerPoint
+	public class AmidaPlayerPointData
 	{
 		/// <summary> 今どの位置にいる？ </summary>
 		public Vector2 Position;

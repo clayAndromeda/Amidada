@@ -63,12 +63,12 @@ namespace Amidada
 		/// <summary>
 		/// あみだくじの線分上を動かす
 		/// </summary>
-		/// <param name="playerPoint">あみだくじ上を動かす点</param>
-		public void MovePlayerPoint(AmidaPlayerPoint playerPoint)
+		/// <param name="playerPointData">あみだくじ上を動かす点</param>
+		public void MovePlayerPoint(AmidaPlayerPointData playerPointData)
 		{
 			const float speed = 1.0f;
 			
-			if (TateLines.Contains(playerPoint.CurrentLine))
+			if (TateLines.Contains(playerPointData.CurrentLine))
 			{
 				// 今縦線上にいる
 				
@@ -77,12 +77,12 @@ namespace Amidada
 					yokoLines
 						.Where(yoko =>
 							// 始点が今の縦線上にある
-							Mathf.Approximately(yoko.Start.x, playerPoint.CurrentLine.Start.x)
+							Mathf.Approximately(yoko.Start.x, playerPointData.CurrentLine.Start.x)
 						).Where(yoko =>
 							// 始点がプレイヤーのY座標より下にある
-							yoko.Start.y < playerPoint.Position.y
+							yoko.Start.y < playerPointData.Position.y
 						)
-						.Select(yoko => (yoko, distance: Mathf.Abs(yoko.Start.y - playerPoint.Position.y)))
+						.Select(yoko => (yoko, distance: Mathf.Abs(yoko.Start.y - playerPointData.Position.y)))
 						.OrderBy(x => x.distance)
 						.FirstOrDefault();
 
@@ -90,19 +90,19 @@ namespace Amidada
 					yokoLines
 						.Where(yoko =>
 							// 終点が今の縦線上にある
-							Mathf.Approximately(yoko.End.x, playerPoint.CurrentLine.Start.x)
+							Mathf.Approximately(yoko.End.x, playerPointData.CurrentLine.Start.x)
 						).Where(yoko =>
 							// 終点がプレイヤーのY座標より下にある
-							yoko.End.y < playerPoint.Position.y
+							yoko.End.y < playerPointData.Position.y
 						)
-						.Select(yoko => (yoko, distance: Mathf.Abs(yoko.End.y - playerPoint.Position.y)))
+						.Select(yoko => (yoko, distance: Mathf.Abs(yoko.End.y - playerPointData.Position.y)))
 						.OrderBy(x => x.distance)
 						.FirstOrDefault();
 				
 				if (option1.yoko == null && option2.yoko == null)
 				{
 					// まがる横線がないのでまっすぐ進むだけ
-					playerPoint.Position += playerPoint.Direction * speed;
+					playerPointData.Position += playerPointData.Direction * speed;
 					return;
 				}
 				
@@ -110,10 +110,10 @@ namespace Amidada
 				{
 					if (option2.distance <= speed)
 					{
-						playerPoint.Position = option2.yoko.End;
-						playerPoint.Direction = option2.yoko.EtoS;
-						playerPoint.TargetPoint = option2.yoko.Start;
-						playerPoint.CurrentLine = option2.yoko;
+						playerPointData.Position = option2.yoko.End;
+						playerPointData.Direction = option2.yoko.EtoS;
+						playerPointData.TargetPoint = option2.yoko.Start;
+						playerPointData.CurrentLine = option2.yoko;
 						return;
 					}
 				}
@@ -121,10 +121,10 @@ namespace Amidada
 				{
 					if (option1.distance <= speed)
 					{
-						playerPoint.Position = option1.yoko.Start;
-						playerPoint.Direction = option1.yoko.StoE;
-						playerPoint.TargetPoint = option1.yoko.End;
-						playerPoint.CurrentLine = option1.yoko;
+						playerPointData.Position = option1.yoko.Start;
+						playerPointData.Direction = option1.yoko.StoE;
+						playerPointData.TargetPoint = option1.yoko.End;
+						playerPointData.CurrentLine = option1.yoko;
 						return;
 					}
 				}
@@ -132,25 +132,25 @@ namespace Amidada
 				{
 					if (option1.distance <= option2.distance && option1.distance <= speed)
 					{
-						playerPoint.Position = option1.yoko.Start;
-						playerPoint.Direction = option1.yoko.StoE;
-						playerPoint.TargetPoint = option1.yoko.End;
-						playerPoint.CurrentLine = option1.yoko;
+						playerPointData.Position = option1.yoko.Start;
+						playerPointData.Direction = option1.yoko.StoE;
+						playerPointData.TargetPoint = option1.yoko.End;
+						playerPointData.CurrentLine = option1.yoko;
 						return;
 					}
 					
 					if (option1.distance > option2.distance && option2.distance <= speed)
 					{
-						playerPoint.Position = option2.yoko.End;
-						playerPoint.Direction = option2.yoko.EtoS;
-						playerPoint.TargetPoint = option2.yoko.Start;
-						playerPoint.CurrentLine = option2.yoko;
+						playerPointData.Position = option2.yoko.End;
+						playerPointData.Direction = option2.yoko.EtoS;
+						playerPointData.TargetPoint = option2.yoko.Start;
+						playerPointData.CurrentLine = option2.yoko;
 						return;
 					}
 				}
 
 				// ここまできたら次の曲がる先までたどり着いてないので、まっすぐ進む
-				playerPoint.Position += playerPoint.Direction * speed;
+				playerPointData.Position += playerPointData.Direction * speed;
 			}
 			else
 			{
@@ -158,22 +158,22 @@ namespace Amidada
 				
 				// 次曲がる先は、今プレイヤーが向かう点とX座標が同じ縦線
 				var nextLine = TateLines.First(tate =>
-					Mathf.Approximately(tate.Start.x, playerPoint.TargetPoint.x)
+					Mathf.Approximately(tate.Start.x, playerPointData.TargetPoint.x)
 				);
 				
 				// TODO: 計算誤差めっちゃ出そう
 				// 今のプレイヤー位置から次の移動先までの線分と、縦線が交差しているなら、縦線に曲がる
-				var movedLine = new AmidaLineSegment(playerPoint.Position, playerPoint.Position + playerPoint.Direction * speed);
+				var movedLine = new AmidaLineSegment(playerPointData.Position, playerPointData.Position + playerPointData.Direction * speed);
 				if (movedLine.IsIntersect(nextLine))
 				{
-					playerPoint.Position = playerPoint.TargetPoint;
-					playerPoint.Direction = nextLine.StoE;
-					playerPoint.TargetPoint = nextLine.End;
-					playerPoint.CurrentLine = nextLine;
+					playerPointData.Position = playerPointData.TargetPoint;
+					playerPointData.Direction = nextLine.StoE;
+					playerPointData.TargetPoint = nextLine.End;
+					playerPointData.CurrentLine = nextLine;
 				}
 				else
 				{
-					playerPoint.Position += playerPoint.Direction * speed;
+					playerPointData.Position += playerPointData.Direction * speed;
 				}
 			}
 		}

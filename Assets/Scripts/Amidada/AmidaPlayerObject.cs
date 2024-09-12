@@ -15,10 +15,17 @@ namespace Amidada
 			get => rectTransform.anchoredPosition;
 			private set => rectTransform.anchoredPosition = value;
 		}
+		public AmidaPlayerPointData PointData { get; private set; }
 		
-		public void SetPointData(AmidaPlayerPoint playerPoint)
+		public void SetPointData(AmidaPlayerPointData pointData)
 		{
-			AnchoredPosition = playerPoint.Position;
+			PointData = pointData;
+			UpdatePointData();
+		}
+
+		public void UpdatePointData()
+		{
+			AnchoredPosition = PointData.Position;
 		}
 
 		/// <summary>
