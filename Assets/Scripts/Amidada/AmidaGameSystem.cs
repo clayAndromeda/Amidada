@@ -85,6 +85,7 @@ namespace Amidada
 				{
 					// スペースキーが押されたら次のステージへ
 					state.Value = GameState.StageClear;
+					await UniTask.WaitForSeconds(2.5f); // 演出待ち
 					await UniTask.WaitUntil(() => Input.GetKeyDown(KeyCode.Space), cancellationToken: cts.Token);
 				}
 				else
