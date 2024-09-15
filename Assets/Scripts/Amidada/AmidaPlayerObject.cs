@@ -20,10 +20,10 @@ namespace Amidada
 		public void SetPointData(AmidaPlayerPointData pointData)
 		{
 			PointData = pointData;
-			UpdatePointData();
+			UpdateAnchoredPosition();
 		}
 
-		public void UpdatePointData()
+		public void UpdateAnchoredPosition()
 		{
 			AnchoredPosition = PointData.Position;
 		}

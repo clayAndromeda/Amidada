@@ -9,126 +9,84 @@ using Random = UnityEngine.Random;
 
 namespace Amidada
 {
-	public class AmidaGameSystem : MonoBehaviour
+	public class AmidaGameSystem : IDisposable
 	{
-		[SerializeField] private AmidaPathPencil pathPencil;
-		[SerializeField] private LineRenderer lineTemplate;
-		[SerializeField] private float extendedLineLength = 10;
-
-		[Header("Prefab参照")] [SerializeField] private AmidaPlayerObject amidaPlayerPrefab;
-		[SerializeField] private AmidaTarget amidaStarPrefab;
-		[SerializeField] private AmidaTarget amidaEnemyPrefab;
-
-		[SerializeField] private Camera mainCamera;
-
-
-		[Header("オブジェクトのルート"), SerializeField]
-		private Canvas canvas;
-
-		[SerializeField] private Transform tateLineParent;
-		[SerializeField] private Transform yokoLineParent;
-
+		private AmidaPathPencil pathPencil;
+		private AmidaStage stage;
+		
+		
+		public int GamePoint { get; private set; }
+		
 		private AmidaLadder ladder;
-		private readonly List<AmidaPlayerObject> playerObjects = new();
-		private readonly List<AmidaTarget> stars = new();
-		private readonly List<AmidaTarget> enemies = new();
+		private int gameSpeed;
+		private bool isAlive;
+		private bool isSpeedUp;
+		
+		private DisposableBag gameDisposableBag = new();
 
-		private int gamePoint;
-		private int gameSpeed = 1;
-		private bool isAlive = true;
-		private bool isSpeedUp = false;
+		private const float ExtendedLineLength = 10;
 
-		private void Awake()
+		public AmidaGameSystem(AmidaStage stageArg, AmidaPathPencil pathPencilArg)
 		{
-			// あみだくじの縦線を生成する
-			InitializeTateLines();
+			stage = stageArg;
+			pathPencil = pathPencilArg;
+		}
 
-			// MEMO: SubscribeAwaitのctは、AddTo or RegisterToで登録してDisposableなオブジェクトの寿命が尽きたタイミングでCancelAndDisposeされる？
-
-			isAlive = false;
+		public async UniTask StartGameAsync()
+		{
+			DisposableBag disposableBag = new();
 			
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetKeyDown(KeyCode.Space))
-				.Subscribe(_ => isSpeedUp = true).AddTo(this);
+				.Subscribe(_ => isSpeedUp = true).AddTo(ref disposableBag);
 			
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetKeyUp(KeyCode.Space))
-				.Subscribe(_ => isSpeedUp = false).AddTo(this);
+				.Subscribe(_ => isSpeedUp = false).AddTo(ref disposableBag);
 			
+			// ペンで横線を描けるようにイベント登録
+			RegisterPathPencilEvents(disposableBag);
+
+			// 今のステージをリセットする
+			stage.ResetStageObjects();
 			
-			// Enterキーを押したら次ステージ開始
-			Observable.EveryUpdate()
-				.Where(_ => Input.GetKeyDown(KeyCode.Return))
-				.Where(_ => !isAlive)
-				.SubscribeAwait(async (_, ct) =>
-				{
-					isAlive = true;
-					
-					// 今あるステージは削除
-					ClearCurrentGameData();
-
-					// 5点取る度1ステージ進む
-					int stageNumber = gamePoint / 5;
-					
-					// 今のステージ番号に対応するゲーム開始設定を取得する
-					var (launchSettings, initialYokoLines) = GameLaunchSettings.GetSettingsByStageNumber(stageNumber);
-					
-					// 初期設定の横線を追加する
-					foreach (var yoko in initialYokoLines)
-					{
-						if (ladder.TryAddYokoLine(yoko))
-						{
-							CreateLineSegmentObject(yoko, yokoLineParent);
-						}
-						else
-						{
-							Debug.Log($"YokoLine {yoko.Start} - {yoko.End}は追加出来ませんでした");
-						}
-					}
-					
-					gameSpeed = launchSettings.GameSpeed;
-					
-					// 線と目標物を生成する
-					CreateNewStage(launchSettings);
-					
-					// ゲーム開始設定に合わせて、最初のプレイヤーを生成する
-					var playerLineIndices = ChooseRandomTateLineIndices(launchSettings.PlayerCount);
-					foreach (var tateLineIndex in playerLineIndices)
-					{
-						var newPlayerObject = Instantiate(amidaPlayerPrefab, canvas.transform);
-						playerObjects.Add(newPlayerObject);
-						SetInitialPosition(newPlayerObject, tateLineIndex);
-					}
-
-					var tasks = new List<UniTask>();
-					for (int i = 0; i < playerObjects.Count; ++i)
-					{
-						// 少しずつ遅らせてプレイヤーを動かし始める
-						tasks.Add(LaunchPlayerObjectAsync(playerObjects[i], (i + 1) * launchSettings.DelayedSecond, ct));
-					}
-
-					await UniTask.WhenAll(tasks);
-
-				}, AwaitOperation.Drop).AddTo(this);
-
-			// 横線を引く処理を登録する
-			RegisterPathPencilEvents();
-		}
-
-		/// <summary>
-		/// 縦線Indexから。プレイヤーを初期位置にセットする
-		/// </summary>
-		private void SetInitialPosition(AmidaPlayerObject playerObject, int tateLineIndex)
-		{
-			var startLine = ladder.TateLines[tateLineIndex];
-			AmidaPlayerPointData pointDataData = new AmidaPlayerPointData
+			// 5点取る度1ステージ進む
+			int stageNumber = GamePoint / 5;
+			
+			// 今のステージ番号に対応するゲーム開始設定を取得する
+			var (launchSettings, initialYokoLines) = GameLaunchSettings.GetSettingsByStageNumber(stageNumber);
+			gameSpeed = launchSettings.GameSpeed;
+			
+			// Ladderを初期化
+			ladder = new AmidaLadder();
+			foreach (var yoko in initialYokoLines)
 			{
-				Position = startLine.Start,
-				Direction = startLine.StoE,
-				CurrentLine = ladder.TateLines[tateLineIndex],
-				TargetPoint = startLine.End,
-			};
-			playerObject.SetPointData(pointDataData);
+				ladder.TryAddYokoLine(yoko);
+			}
+
+			// 縦線の終点に、ランダムで1～3個のスターを配置
+			var starLineIndices = ChooseRandomTateLineIndices(launchSettings.StarCount);
+			// スターが配置されなかった場所にはエネミーを配置する
+			var enemyLineIndices = new List<int> { 0, 1, 2, 3 }.Except(starLineIndices).ToList();
+			
+			// ステージ生成
+			stage.CreateNewStage(ladder, starLineIndices, enemyLineIndices);
+			
+			// プレイヤーオブジェクトを生成する
+			var playerLineIndices = ChooseRandomTateLineIndices(launchSettings.PlayerCount);
+			var playerObjects = stage.CreatePlayerObjects(ladder, playerLineIndices);
+
+			isAlive = true;
+			CancellationTokenSource cts = new();
+			cts.AddTo(ref gameDisposableBag);
+			
+			var tasks = new List<UniTask>();
+			for (int i = 0; i < playerObjects.Length; i++)
+			{
+				// 少しずつ遅らせてプレイヤーを動かし始める
+				tasks.Add(LaunchPlayerObjectAsync(playerObjects[i], (i + 1) * launchSettings.DelayedSecond, cts.Token));
+			}
+			await UniTask.WhenAll(tasks);
 		}
 
 		private async UniTask LaunchPlayerObjectAsync(AmidaPlayerObject playerObject, float initialDelayTime, CancellationToken cancellationToken)
@@ -149,7 +107,7 @@ namespace Amidada
 				for (int i = 0; i < sampleRate; i++)
 				{
 					ladder.MovePlayerPoint(playerObject.PointData);
-					playerObject.UpdatePointData();
+					playerObject.UpdateAnchoredPosition();
 
 					// 縦線の終点より下に行くまで続ける
 					if (playerObject.PointData.Position.y <= ladder.TateLines[0].End.y)
@@ -170,7 +128,7 @@ namespace Amidada
 			if (playerObject != null)
 			{
 				var playerTateLineIndex = ladder.GetTateLineIndex(playerObject.PointData.CurrentLine);
-				var enemy = enemies.FirstOrDefault(x => x.TateLineIndex == playerTateLineIndex);
+				var enemy = stage.Enemies.FirstOrDefault(x => x.TateLineIndex == playerTateLineIndex);
 				if (enemy != null)
 				{
 					isAlive = false;
@@ -178,11 +136,11 @@ namespace Amidada
 				}
 				
 				// スターと同じ縦線にいれば、ポイントゲット。必要ならスタート位置に戻る
-				var star = stars.FirstOrDefault(x => x.TateLineIndex == playerTateLineIndex);
+				var star = stage.Stars.FirstOrDefault(x => x.TateLineIndex == playerTateLineIndex);
 				if (star != null)
 				{
-					gamePoint++;
-					if (gamePoint % 5 == 0)
+					GamePoint++;
+					if (GamePoint % 5 == 0)
 					{
 						// 5で割り切れるならゲームクリア。
 						isAlive = false;
@@ -192,31 +150,17 @@ namespace Amidada
 					// まだゲームが続くなら、スタート位置にすぐ戻して、再スタート
 					var tateLineIndexList = new List<int> { 0, 1, 2, 3 };
 					var index = Random.Range(0, tateLineIndexList.Count);
-					SetInitialPosition(playerObject, tateLineIndexList[index]);
+					var restartedLine = ladder.TateLines[tateLineIndexList[index]];
+					AmidaPlayerPointData restartedPointData = new AmidaPlayerPointData
+					{
+						Position = restartedLine.Start,
+						Direction = restartedLine.StoE,
+						CurrentLine = restartedLine,
+						TargetPoint = restartedLine.End,
+					};
+					playerObject.SetPointData(restartedPointData);
 					await LaunchPlayerObjectAsync(playerObject, 0, cancellationToken);
 				}
-			}
-		}
-
-		private void CreateNewStage(GameLaunchSettings launchSettings)
-		{
-			// 縦線の終点に、ランダムで1～3個のスターを配置
-			// それ以外の場所にはエネミーを配置する
-			var starLineIndices = ChooseRandomTateLineIndices(launchSettings.StarCount);
-			var enemyLineIndices = new List<int> { 0, 1, 2, 3 }.Except(starLineIndices).ToList();
-
-			foreach (var starLineIndex in starLineIndices)
-			{
-				var star = Instantiate(amidaStarPrefab, canvas.transform);
-				star.SetPosition(ladder.TateLines[starLineIndex].End, starLineIndex);
-				stars.Add(star);
-			}
-
-			foreach (var enemyLineIndex in enemyLineIndices)
-			{
-				var enemy = Instantiate(amidaEnemyPrefab, canvas.transform);
-				enemy.SetPosition(ladder.TateLines[enemyLineIndex].End, enemyLineIndex);
-				enemies.Add(enemy);
 			}
 		}
 
@@ -233,48 +177,8 @@ namespace Amidada
 
 			return chosenIndices;
 		}
-
-		private void InitializeTateLines()
-		{
-			ladder = new AmidaLadder();
-			foreach (var line in ladder.TateLines)
-			{
-				CreateLineSegmentObject(line, tateLineParent);
-			}
-		}
-
-		private void ClearCurrentGameData()
-		{
-			// 横線を全削除
-			ladder.ClearYokoLines();
-			foreach (Transform child in yokoLineParent)
-			{
-				Destroy(child.gameObject);
-			}
-
-			// プレイヤーオブジェクトを全削除
-			foreach (var playerObject in playerObjects)
-			{
-				playerObject.Destroy();
-			}
-			playerObjects.Clear();
-
-			// スターを全削除
-			foreach (var star in stars)
-			{
-				star.Destroy();
-			}
-			stars.Clear();
-
-			// エネミーを全削除
-			foreach (var enemy in enemies)
-			{
-				enemy.Destroy();
-			}
-			enemies.Clear();
-		}
-
-		private void RegisterPathPencilEvents()
+		
+		private void RegisterPathPencilEvents(DisposableBag disposableBag)
 		{
 			pathPencil.MousePosition
 				.Subscribe(_ =>
@@ -282,7 +186,7 @@ namespace Amidada
 					var line = pathPencil.StartToEndLine;
 					if (line == null) return;
 
-					var extendedLine = line.ExtendStartPosition(extendedLineLength);
+					var extendedLine = line.ExtendStartPosition(ExtendedLineLength);
 
 					for (int i = 0; i < ladder.TateLines.Count - 1; i++)
 					{
@@ -291,8 +195,9 @@ namespace Amidada
 						    extendedLine.IsIntersect(ladder.TateLines[i + 1]))
 						{
 							// 始点と終点を2本の縦線で切り取る
-							var clippedLine =
-								extendedLine.ClipVerticalLines(ladder.TateLines[i], ladder.TateLines[i + 1]);
+							var clippedLine = extendedLine.ClipVerticalLines(ladder.TateLines[i], ladder.TateLines[i + 1]);
+							
+							// TODO: これいらなそう
 							// 横糸は、X座標が小さい方から大きい方へ向かうようにする
 							if (clippedLine.Start.x > clippedLine.End.x)
 							{
@@ -306,29 +211,16 @@ namespace Amidada
 							}
 
 							// 横糸を追加したので、線分を描画して終了
-							CreateLineSegmentObject(clippedLine, yokoLineParent);
+							stage.CreateYokoLine(clippedLine);
 							pathPencil.StopDraw();
-							return;
 						}
 					}
-				}).AddTo(this);
+				}).AddTo(ref disposableBag);
 		}
 
-		private void CreateLineSegmentObject(AmidaLineSegment lineSegment, Transform parent)
+		public void Dispose()
 		{
-			var line = Instantiate(lineTemplate, parent);
-			var startPointScreenSpace = mainCamera.ScreenToWorldPoint(lineSegment.Start);
-			var endPointScreenSpace = mainCamera.ScreenToWorldPoint(lineSegment.End);
-
-			line.SetPosition(0, new(startPointScreenSpace.x, startPointScreenSpace.y, 0));
-			line.SetPosition(1, new(endPointScreenSpace.x, endPointScreenSpace.y, 0));
-		}
-
-		private void OnGUI()
-		{
-			// 画面右上にポイント表示
-			GUI.Label(new Rect(Screen.width - 100, 0, 100, 50), $"Point: {gamePoint}");
-			// その下に、
+			gameDisposableBag.Dispose();
 		}
 	}
 }

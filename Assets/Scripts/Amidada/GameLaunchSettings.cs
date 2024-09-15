@@ -43,15 +43,16 @@ namespace Amidada
 			new(2, 2, 2, 1),
 			new(1, 1, 1.5f, 2),
 			new(2, 2, 1, 2),
+			new(2, 1, 2, 1),
 			new(3, 2, 1f, 1),
 			new(3, 2, 1f, 1),
-			new(3, 2, 1f, 2),
+			new(3, 2, 0.7f, 2),
 		};
 
 		private static readonly AmidaLineSegment[][] InitialYokoLines =
 		{
-			new [] { CreateClipped01(500, 500), CreateClipped12(400, 400), CreateClipped23(500, 500) },
-			new [] { CreateClipped01(400, 400), CreateClipped12(500, 500), CreateClipped23(400, 400) },
+			new [] { CreateClipped01(500, 500), CreateClipped12(400, 400), CreateClipped23(500, 500), CreateClipped23(400, 400) },
+			new [] { CreateClipped01(500, 450), CreateClipped01(400, 400), CreateClipped12(500, 500), CreateClipped23(400, 400) },
 			new [] { CreateClipped01(500, 400), CreateClipped12(450, 450), CreateClipped12(350, 350), CreateClipped23(400, 500) },
 			new [] { CreateClipped01(500, 500), CreateClipped01(400, 400), CreateClipped12(450, 450), CreateClipped12(350, 350), CreateClipped23(500, 500), CreateClipped23(400, 400) },
 		};

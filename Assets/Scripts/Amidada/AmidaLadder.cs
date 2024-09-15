@@ -13,7 +13,7 @@ namespace Amidada
 		public readonly List<AmidaLineSegment> TateLines = new();
 
 		/// <summary> 横糸 </summary>
-		private readonly List<AmidaLineSegment> yokoLines = new();
+		public readonly List<AmidaLineSegment> YokoLines = new();
 
 		public AmidaLadder()
 		{
@@ -31,7 +31,7 @@ namespace Amidada
 		/// </summary>
 		public void ClearYokoLines()
 		{
-			yokoLines.Clear();
+			YokoLines.Clear();
 		}
 		
 		/// <summary>
@@ -41,7 +41,7 @@ namespace Amidada
 		public bool TryAddYokoLine(AmidaLineSegment line)
 		{
 			// 他の横糸と交差していたら追加できない
-			foreach (var yokoLine in yokoLines)
+			foreach (var yokoLine in YokoLines)
 			{
 				if (line.IsIntersect(yokoLine))
 				{
@@ -49,7 +49,7 @@ namespace Amidada
 					return false;
 				}
 			}
-			yokoLines.Add(line);
+			YokoLines.Add(line);
 			return true;
 		}
 		
@@ -75,7 +75,7 @@ namespace Amidada
 				
 				// 横線の中で、始点のX座標が同じで、Y座標が進行方向に最も近いものを探す
 				(AmidaLineSegment yoko, float distance) option1 =
-					yokoLines
+					YokoLines
 						.Where(yoko =>
 							// 始点が今の縦線上にある
 							Mathf.Approximately(yoko.Start.x, playerPointData.CurrentLine.Start.x)
@@ -88,7 +88,7 @@ namespace Amidada
 						.FirstOrDefault();
 
 				(AmidaLineSegment yoko, float distance) option2 =
-					yokoLines
+					YokoLines
 						.Where(yoko =>
 							// 終点が今の縦線上にある
 							Mathf.Approximately(yoko.End.x, playerPointData.CurrentLine.Start.x)
