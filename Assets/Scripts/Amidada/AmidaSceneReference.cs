@@ -37,9 +37,8 @@ namespace Amidada
 
 		private void OnGUI()
 		{
-			// 画面右上にポイント表示
-			GUI.Label(new Rect(Screen.width - 100, 0, 100, 50), $"Point: {gameSystem.GamePoint}");
-			// その下に、
+			// 画面右上にポイントとステート表示
+			GUI.Label(new Rect(Screen.width - 300, 0, 300, 50), $"Point: {gameSystem.GamePoint.CurrentValue}, State: {gameSystem.State.CurrentValue}");
 		}
 	}
 }

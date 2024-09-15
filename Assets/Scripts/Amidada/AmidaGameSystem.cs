@@ -5,24 +5,41 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
+using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace Amidada
 {
 	public class AmidaGameSystem : IDisposable
 	{
-		private AmidaPathPencil pathPencil;
-		private AmidaStage stage;
+		private readonly AmidaPathPencil pathPencil;
+		private readonly AmidaStage stage;
+
+		public enum GameState
+		{
+			ReadyToPlay,
+			Playing,
+			StageClear,
+			GameOver,
+		}
+		private readonly ReactiveProperty<GameState> state = new(GameState.ReadyToPlay);
+
+		/// <summary> ゲームの状態 </summary>
+		public ReadOnlyReactiveProperty<GameState> State => state;
 		
-		
-		public int GamePoint { get; private set; }
+		private readonly ReactiveProperty<int> gamePoint = new(0);
+
+		/// <summary> ゲームの得点 </summary>
+		public ReadOnlyReactiveProperty<int> GamePoint => gamePoint;
 		
 		private AmidaLadder ladder;
 		private int gameSpeed;
 		private bool isAlive;
 		private bool isSpeedUp;
+		private AmidaPlayerObject[] playerObjects;
 		
-		private DisposableBag gameDisposableBag = new();
+		private readonly CancellationTokenSource cts = new();
+		private bool isDisposed = false;
 
 		private const float ExtendedLineLength = 10;
 
@@ -31,11 +48,53 @@ namespace Amidada
 			stage = stageArg;
 			pathPencil = pathPencilArg;
 		}
-
+		
 		public async UniTask StartGameAsync()
 		{
-			DisposableBag disposableBag = new();
+			state.Value = GameState.ReadyToPlay;
 			
+			while (!isDisposed)
+			{
+				// ゲーム開始前の待ち処理
+				if (state.Value == GameState.ReadyToPlay)
+				{
+					// 見た目上、空のステージを作成しておく
+					ladder = new AmidaLadder();
+					stage.CreateNewStage(ladder, new List<int>(), new List<int>());
+
+					// スペースキーが押されたらゲーム開始
+					await UniTask.WaitUntil(() => Input.GetKeyDown(KeyCode.Space), cancellationToken: cts.Token);
+				}
+
+				// ゲーム開始
+				state.Value = GameState.Playing;
+
+				var gameResult = await PlayGameAsync();
+				if (gameResult)
+				{
+					// スペースキーが押されたら次のステージへ
+					state.Value = GameState.StageClear;
+					await UniTask.WaitUntil(() => Input.GetKeyDown(KeyCode.Space), cancellationToken: cts.Token);
+				}
+				else
+				{
+					// 敗北。スペースが押されたら、リセットして次のステージへ
+					state.Value = GameState.GameOver;
+					await UniTask.WaitUntil(() => Input.GetKeyDown(KeyCode.Space), cancellationToken: cts.Token);
+					gamePoint.Value = 0;
+					state.Value = GameState.ReadyToPlay;
+				}
+
+				// スペースを押して、次のループへ入る
+				stage.ResetStageObjects();
+				DestroyPlayerObjects();
+			}
+			
+		}
+
+		private async UniTask<bool> PlayGameAsync()
+		{
+			DisposableBag disposableBag = new();
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetKeyDown(KeyCode.Space))
 				.Subscribe(_ => isSpeedUp = true).AddTo(ref disposableBag);
@@ -51,7 +110,7 @@ namespace Amidada
 			stage.ResetStageObjects();
 			
 			// 5点取る度1ステージ進む
-			int stageNumber = GamePoint / 5;
+			int stageNumber = GamePoint.CurrentValue / 5;
 			
 			// 今のステージ番号に対応するゲーム開始設定を取得する
 			var (launchSettings, initialYokoLines) = GameLaunchSettings.GetSettingsByStageNumber(stageNumber);
@@ -74,12 +133,10 @@ namespace Amidada
 			
 			// プレイヤーオブジェクトを生成する
 			var playerLineIndices = ChooseRandomTateLineIndices(launchSettings.PlayerCount);
-			var playerObjects = stage.CreatePlayerObjects(ladder, playerLineIndices);
+			playerObjects = stage.CreatePlayerObjects(ladder, playerLineIndices);
 
+			// プレイヤーオブジェクトを動かし始める
 			isAlive = true;
-			CancellationTokenSource cts = new();
-			cts.AddTo(ref gameDisposableBag);
-			
 			var tasks = new List<UniTask>();
 			for (int i = 0; i < playerObjects.Length; i++)
 			{
@@ -87,6 +144,11 @@ namespace Amidada
 				tasks.Add(LaunchPlayerObjectAsync(playerObjects[i], (i + 1) * launchSettings.DelayedSecond, cts.Token));
 			}
 			await UniTask.WhenAll(tasks);
+			disposableBag.Dispose();
+
+			isSpeedUp = false;
+			// 5で割り切れるポイントなら、次のステージへ
+			return gamePoint.CurrentValue % 5 == 0;
 		}
 
 		private async UniTask LaunchPlayerObjectAsync(AmidaPlayerObject playerObject, float initialDelayTime, CancellationToken cancellationToken)
@@ -139,10 +201,10 @@ namespace Amidada
 				var star = stage.Stars.FirstOrDefault(x => x.TateLineIndex == playerTateLineIndex);
 				if (star != null)
 				{
-					GamePoint++;
-					if (GamePoint % 5 == 0)
+					gamePoint.Value = gamePoint.CurrentValue + 1;
+					if (GamePoint.CurrentValue % 5 == 0)
 					{
-						// 5で割り切れるならゲームクリア。
+						// 5で割り切れるならゲームクリア
 						isAlive = false;
 						return;
 					}
@@ -217,10 +279,32 @@ namespace Amidada
 					}
 				}).AddTo(ref disposableBag);
 		}
+		
+		private void DestroyPlayerObjects()
+		{
+			if (playerObjects == null) return;
+			foreach (var playerObject in playerObjects)
+			{
+				if (playerObject != null)
+				{
+					Object.Destroy(playerObject.gameObject);
+				}
+			}
+			playerObjects = null;
+		}
+
 
 		public void Dispose()
 		{
-			gameDisposableBag.Dispose();
+			DestroyPlayerObjects();
+			
+			gamePoint.Dispose();
+			state.Dispose();
+			
+			cts.Cancel();
+			cts.Dispose();
+
+			isDisposed = true;
 		}
 	}
 }
