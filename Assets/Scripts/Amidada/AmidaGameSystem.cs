@@ -39,9 +39,9 @@ namespace Amidada
 		private AmidaPlayerObject[] playerObjects;
 		
 		private readonly CancellationTokenSource cts = new();
-		private bool isDisposed = false;
+		private bool isDisposed;
 
-		private const float ExtendedLineLength = 10;
+		private const float ExtendedLineLength = 15;
 
 		public AmidaGameSystem(AmidaStage stageArg, AmidaPathPencil pathPencilArg)
 		{
