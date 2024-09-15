@@ -5,16 +5,16 @@ namespace Amidada
 {
 	public class AmidaStage
 	{
-		private Camera mainCamera;
-		private LineRenderer lineTemplate;
-		private Canvas canvas;
+		private readonly Camera mainCamera;
+		private readonly LineRenderer lineTemplate;
+		private readonly Canvas canvas;
 		
-		private AmidaPlayerObject amidaPlayerPrefab;
-		private AmidaTarget amidaStarPrefab;
-		private AmidaTarget amidaEnemyPrefab;
+		private readonly AmidaPlayerObject amidaPlayerPrefab;
+		private readonly AmidaTarget amidaStarPrefab;
+		private readonly AmidaTarget amidaEnemyPrefab;
 		
-		private Transform tateLineParent;
-		private Transform yokoLineParent;
+		private readonly Transform tateLineParent;
+		private readonly Transform yokoLineParent;
 
 		public AmidaStage(Camera mainCamera, LineRenderer lineTemplate, Canvas canvas, AmidaPlayerObject amidaPlayerPrefab, AmidaTarget amidaStarPrefab, AmidaTarget amidaEnemyPrefab, Transform tateLineParent, Transform yokoLineParent)
 		{

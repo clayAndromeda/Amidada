@@ -20,6 +20,8 @@ namespace Amidada
 
 		[SerializeField] private Transform tateLineParent;
 		[SerializeField] private Transform yokoLineParent;
+		
+		[SerializeField] GameSoundManager soundManager;
 
 		private AmidaGameSystem gameSystem;
 		
@@ -28,6 +30,8 @@ namespace Amidada
 			var stage = new AmidaStage(mainCamera, lineTemplate, canvas, amidaPlayerPrefab, amidaStarPrefab, amidaEnemyPrefab, tateLineParent, yokoLineParent);
 			gameSystem = new AmidaGameSystem(stage, pathPencil);
 			gameSystem.StartGameAsync().Forget();
+			
+			soundManager.RegisterSoundEvents(gameSystem);
 		}
 
 		private void OnDestroy()

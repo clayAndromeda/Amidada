@@ -32,6 +32,11 @@ namespace Amidada
 		/// <summary> ゲームの得点 </summary>
 		public ReadOnlyReactiveProperty<int> GamePoint => gamePoint;
 		
+		private readonly Subject<Unit> onTurn = new();
+
+		/// <summary> 点が曲がったか？ </summary>
+		public Observable<Unit> OnTurn => onTurn;
+		
 		private AmidaLadder ladder;
 		private int gameSpeed;
 		private bool isAlive;
@@ -89,22 +94,22 @@ namespace Amidada
 				stage.ResetStageObjects();
 				DestroyPlayerObjects();
 			}
-			
 		}
 
 		private async UniTask<bool> PlayGameAsync()
 		{
-			DisposableBag disposableBag = new();
+			DisposableBag playLoopDisposableBag = new();
+			
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetKeyDown(KeyCode.Space))
-				.Subscribe(_ => isSpeedUp = true).AddTo(ref disposableBag);
+				.Subscribe(_ => isSpeedUp = true).AddTo(ref playLoopDisposableBag);
 			
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetKeyUp(KeyCode.Space))
-				.Subscribe(_ => isSpeedUp = false).AddTo(ref disposableBag);
+				.Subscribe(_ => isSpeedUp = false).AddTo(ref playLoopDisposableBag);
 			
 			// ペンで横線を描けるようにイベント登録
-			RegisterPathPencilEvents(disposableBag);
+			RegisterPathPencilEvents(playLoopDisposableBag);
 
 			// 今のステージをリセットする
 			stage.ResetStageObjects();
@@ -122,6 +127,7 @@ namespace Amidada
 			{
 				ladder.TryAddYokoLine(yoko);
 			}
+			ladder.OnTurn.Subscribe(onTurn.OnNext).AddTo(ref playLoopDisposableBag);
 
 			// 縦線の終点に、ランダムで1～3個のスターを配置
 			var starLineIndices = ChooseRandomTateLineIndices(launchSettings.StarCount);
@@ -144,7 +150,7 @@ namespace Amidada
 				tasks.Add(LaunchPlayerObjectAsync(playerObjects[i], (i + 1) * launchSettings.DelayedSecond, cts.Token));
 			}
 			await UniTask.WhenAll(tasks);
-			disposableBag.Dispose();
+			playLoopDisposableBag.Dispose();
 
 			isSpeedUp = false;
 			// 5で割り切れるポイントなら、次のステージへ

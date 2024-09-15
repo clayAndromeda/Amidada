@@ -76,7 +76,6 @@ namespace Amidada
 			// InitialYokoLinesからランダムに1つ選ぶ
 			int yokoLinesIndex = Random.Range(0, InitialYokoLines.Length);
 			var yokoLines = InitialYokoLines[yokoLinesIndex];
-			Debug.Log($"{yokoLinesIndex}の横線を選択");
 			
 			// 範囲外なら末尾を返す
 			if (stageNumber >= LowLevelSettings.Length)

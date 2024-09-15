@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using R3;
 using UnityEngine;
 
 namespace Amidada
@@ -14,6 +15,11 @@ namespace Amidada
 
 		/// <summary> 横糸 </summary>
 		public readonly List<AmidaLineSegment> YokoLines = new();
+		
+		private readonly Subject<Unit> onTurn = new();
+
+		/// <summary> 点が曲がったか？ </summary>
+		public Observable<Unit> OnTurn => onTurn;
 
 		public AmidaLadder()
 		{
@@ -27,14 +33,6 @@ namespace Amidada
 		}
 
 		/// <summary>
-		/// 横糸を全て削除する
-		/// </summary>
-		public void ClearYokoLines()
-		{
-			YokoLines.Clear();
-		}
-		
-		/// <summary>
 		/// 横糸の追加を試みる
 		/// </summary>
 		/// <returns>追加できた</returns>
@@ -45,7 +43,6 @@ namespace Amidada
 			{
 				if (line.IsIntersect(yokoLine))
 				{
-					Debug.Log($"line ({line.Start.x}, {line.Start.y}) - ({line.End.x}, {line.End.y}) は、({yokoLine.Start.x}, {yokoLine.Start.y}) - ({yokoLine.End.x}, {yokoLine.End.y})と交差しています");
 					return false;
 				}
 			}
@@ -115,6 +112,7 @@ namespace Amidada
 						playerPointData.Direction = option2.yoko.EtoS;
 						playerPointData.TargetPoint = option2.yoko.Start;
 						playerPointData.CurrentLine = option2.yoko;
+						onTurn.OnNext(Unit.Default);
 						return;
 					}
 				}
@@ -126,6 +124,7 @@ namespace Amidada
 						playerPointData.Direction = option1.yoko.StoE;
 						playerPointData.TargetPoint = option1.yoko.End;
 						playerPointData.CurrentLine = option1.yoko;
+						onTurn.OnNext(Unit.Default);
 						return;
 					}
 				}
@@ -137,6 +136,7 @@ namespace Amidada
 						playerPointData.Direction = option1.yoko.StoE;
 						playerPointData.TargetPoint = option1.yoko.End;
 						playerPointData.CurrentLine = option1.yoko;
+						onTurn.OnNext(Unit.Default);
 						return;
 					}
 					
@@ -146,6 +146,7 @@ namespace Amidada
 						playerPointData.Direction = option2.yoko.EtoS;
 						playerPointData.TargetPoint = option2.yoko.Start;
 						playerPointData.CurrentLine = option2.yoko;
+						onTurn.OnNext(Unit.Default);
 						return;
 					}
 				}
@@ -171,6 +172,7 @@ namespace Amidada
 					playerPointData.Direction = nextLine.StoE;
 					playerPointData.TargetPoint = nextLine.End;
 					playerPointData.CurrentLine = nextLine;
+					onTurn.OnNext(Unit.Default);
 				}
 				else
 				{
