@@ -22,6 +22,7 @@ namespace Amidada
 		[SerializeField] private Transform yokoLineParent;
 		
 		[SerializeField] GameSoundManager soundManager;
+		[SerializeField] GameUIManager uiManager;
 
 		private AmidaGameSystem gameSystem;
 		
@@ -32,6 +33,7 @@ namespace Amidada
 			gameSystem.StartGameAsync().Forget();
 			
 			soundManager.RegisterSoundEvents(gameSystem);
+			uiManager.RegisterGameEvents(gameSystem);
 		}
 
 		private void OnDestroy()

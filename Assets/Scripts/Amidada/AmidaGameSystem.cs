@@ -7,6 +7,7 @@ using R3;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
+using Unit = R3.Unit;
 
 namespace Amidada
 {
@@ -37,10 +38,15 @@ namespace Amidada
 		/// <summary> 点が曲がったか？ </summary>
 		public Observable<Unit> OnTurn => onTurn;
 		
+		private ReactiveProperty<bool> isSpeedUp = new();
+
+		/// <summary> ゲーム速度は加速中か？ </summary>
+		public ReadOnlyReactiveProperty<bool> IsSpeedUp => isSpeedUp;
+		
 		private AmidaLadder ladder;
 		private int gameSpeed;
 		private bool isAlive;
-		private bool isSpeedUp;
+		
 		private AmidaPlayerObject[] playerObjects;
 		
 		private readonly CancellationTokenSource cts = new();
@@ -102,11 +108,11 @@ namespace Amidada
 			
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetKeyDown(KeyCode.Space))
-				.Subscribe(_ => isSpeedUp = true).AddTo(ref playLoopDisposableBag);
+				.Subscribe(_ => isSpeedUp.Value = true).AddTo(ref playLoopDisposableBag);
 			
 			Observable.EveryUpdate()
 				.Where(_ => Input.GetKeyUp(KeyCode.Space))
-				.Subscribe(_ => isSpeedUp = false).AddTo(ref playLoopDisposableBag);
+				.Subscribe(_ => isSpeedUp.Value = false).AddTo(ref playLoopDisposableBag);
 			
 			// ペンで横線を描けるようにイベント登録
 			RegisterPathPencilEvents(playLoopDisposableBag);
@@ -152,7 +158,7 @@ namespace Amidada
 			await UniTask.WhenAll(tasks);
 			playLoopDisposableBag.Dispose();
 
-			isSpeedUp = false;
+			isSpeedUp.Value = false;
 			// 5で割り切れるポイントなら、次のステージへ
 			return gamePoint.CurrentValue % 5 == 0;
 		}
@@ -171,7 +177,7 @@ namespace Amidada
 					break;
 				}
 
-				int sampleRate = isSpeedUp ? 3 : gameSpeed;
+				int sampleRate = isSpeedUp.Value ? 3 : gameSpeed;
 				for (int i = 0; i < sampleRate; i++)
 				{
 					ladder.MovePlayerPoint(playerObject.PointData);
