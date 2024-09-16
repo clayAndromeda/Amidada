@@ -903,12 +903,12 @@ MonoBehaviour:
   bigPointImage: {fileID: 1671888105}
   bigPointText: {fileID: 1150054988}
   bigPointImageRect: {fileID: 1671888104}
-  singlePointImageRects:
-  - {fileID: 451325904}
-  - {fileID: 1493296507}
-  - {fileID: 1855221015}
-  - {fileID: 566124379}
-  - {fileID: 290773976}
+  singlePointImages:
+  - {fileID: 451325905}
+  - {fileID: 1493296508}
+  - {fileID: 1855221016}
+  - {fileID: 566124380}
+  - {fileID: 290773977}
   gameInfoText: {fileID: 1681531927}
 --- !u!1 &1150054986
 GameObject:
